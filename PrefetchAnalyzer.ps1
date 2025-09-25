@@ -8,17 +8,10 @@ Clear-Host
 # Display Audit Eye Banner
 Write-Host @"
 
-
- █████╗ ██╗   ██╗██████╗ ██╗████████╗    ███████╗██╗   ██╗███████╗
-██╔══██╗██║   ██║██╔══██╗██║╚══██╔══╝    ██╔════╝╚██╗ ██╔╝██╔════╝
-███████║██║   ██║██║  ██║██║   ██║       █████╗   ╚████╔╝ █████╗  
-██╔══██║██║   ██║██║  ██║██║   ██║       ██╔══╝    ╚██╔╝  ██╔══╝  
-██║  ██║╚██████╔╝██████╔╝██║   ██║       ███████╗   ██║   ███████╗
-╚═╝  ╚═╝ ╚═════╝ ╚═════╝ ╚═╝   ╚═╝       ╚══════╝   ╚═╝   ╚══════╝
-
 ------> Made by RitzySix | RiddySix | -> PrefetchAnalysis
 "@ -ForegroundColor Magenta
 Write-Host ""
+
 
 # Function to check for admin privileges
 function Test-Admin {
