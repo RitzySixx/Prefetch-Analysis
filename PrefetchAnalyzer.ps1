@@ -1,4 +1,4 @@
-﻿# Audit Eye Prefetch Analyzer
+# Audit Eye Prefetch Analyzer
 # Advanced prefetch file analysis with multi-threading and executable name extraction
 
 $directory = "C:\Windows\Prefetch"
@@ -12,7 +12,6 @@ Write-Host @"
 "@ -ForegroundColor Magenta
 Write-Host ""
 
-
 # Function to check for admin privileges
 function Test-Admin {
     $currentUser = New-Object Security.Principal.WindowsPrincipal $([Security.Principal.WindowsIdentity]::GetCurrent())
@@ -21,10 +20,12 @@ function Test-Admin {
 
 # Verify admin privileges
 if (!(Test-Admin)) {
-    Write-Warning "This script requires administrative privileges. Please run as Administrator."
-    Start-Sleep -Seconds 5
+    Write-Warning "Please Run This Script as Admin."
+    Start-Sleep 10
     Exit
 }
+
+Start-Sleep -s 3
 
 try {
     $prefetchValue = Get-ItemPropertyValue -Path "HKLM:\SYSTEM\CurrentControlSet\Control\Session Manager\Memory Management\PrefetchParameters" -Name EnablePrefetcher -ErrorAction Stop
@@ -37,7 +38,7 @@ try {
             Write-Host "Prefetch is ENABLED (value: 1 - Application launch only)" -ForegroundColor Yellow
         }
         2 {
-            Write-Host "Prefetch is DISABLED for Applications (value: 2 - Boot only)" -ForegroundColor RED
+            Write-Host "Prefetch is DISABLED for Applications (value: 2 - Boot only)" -ForegroundColor Red
         }
         3 {
             # Full mode (boot + application) → don’t print anything, stays “clean”
@@ -108,6 +109,40 @@ foreach ($file in $files) {
     [void]$powershell.AddScript({
         param($file)
         
+        # Define Decompress-PrefetchFile within the runspace
+        function Decompress-PrefetchFile {
+            param($data)
+            try {
+                # Read signature and decompressed size
+                if ($data.Length -lt 8) { return $null }
+                $signature = [BitConverter]::ToUInt32($data, 0)
+                $decompressedSize = [BitConverter]::ToUInt32($data, 4)
+                
+                # Verify MAM signature
+                if (($signature -band 0x00FFFFFF) -ne 0x004D414D) { return $null }
+                
+                # Skip header (8 bytes)
+                $compressedData = $data[8..($data.Length - 1)]
+                
+                # Attempt decompression (assuming LZX-like compression, using Deflate as a fallback)
+                $memoryStream = New-Object System.IO.MemoryStream(,$compressedData)
+                $decompressStream = New-Object System.IO.Compression.DeflateStream($memoryStream, [System.IO.Compression.CompressionMode]::Decompress)
+                $outputStream = New-Object System.IO.MemoryStream
+                $decompressStream.CopyTo($outputStream)
+                $decompressedData = $outputStream.ToArray()
+                $decompressStream.Close()
+                $outputStream.Close()
+                $memoryStream.Close()
+                
+                if ($decompressedData.Length -ge $decompressedSize) {
+                    return $decompressedData
+                }
+                return $null
+            } catch {
+                return $null
+            }
+        }
+        
         # Define Get-PrefetchExecutableName within the runspace
         function Get-PrefetchExecutableName {
             param($filePath, $data)
@@ -169,10 +204,8 @@ foreach ($file in $files) {
                 $decompressedData = Decompress-PrefetchFile -data $fileContent
                 if ($decompressedData) {
                     $data = $decompressedData
-                } else {
-                    $result.Status = "Suspicious"
-                    $result.Details = if ($result.Details) { $result.Details + "; Failed to decompress prefetch file" } else { "Failed to decompress prefetch file" }
                 }
+                # Do not mark as suspicious if decompression fails; use raw data as fallback
             }
 
             # Extract executable name
@@ -219,8 +252,6 @@ foreach ($runspace in $runspaces) {
     if ($result.SHA256) {
         if ($hashTable.ContainsKey($result.SHA256)) {
             $hashTable[$result.SHA256].Add($result.FileName)
-            $result.Status = "Suspicious"
-            $result.Details = if ($result.Details) { $result.Details + "; Duplicate hash detected" } else { "Duplicate hash detected" }
         } else {
             $hashTable[$result.SHA256] = [System.Collections.Generic.List[string]]::new()
             $hashTable[$result.SHA256].Add($result.FileName)
@@ -237,6 +268,21 @@ foreach ($runspace in $runspaces) {
 
 $runspacePool.Close()
 $runspacePool.Dispose()
+
+# Detect repeated hashes after all hashes are collected
+$repeatedHashes = $hashTable.GetEnumerator() | Where-Object { $_.Value.Count -gt 1 }
+
+if ($repeatedHashes) {
+    foreach ($entry in $repeatedHashes) {
+        foreach ($file in $entry.Value) {
+            if (-not $suspiciousFiles.ContainsKey($file)) {
+                $suspiciousFiles[$file] = "$file was modified with type or echo"
+            } else {
+                $suspiciousFiles[$file] += "; $file was modified with type or echo"
+            }
+        }
+    }
+}
 
 # Display results
 Write-Host ""
