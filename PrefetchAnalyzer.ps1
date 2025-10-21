@@ -1,15 +1,21 @@
 # Audit Eye Prefetch Analyzer
 # Advanced prefetch file analysis with multi-threading and executable name extraction
 
+# Ensure Unicode support for ASCII art banner
+[Console]::OutputEncoding = [System.Text.Encoding]::UTF8
+
 $directory = "C:\Windows\Prefetch"
 
 Clear-Host
 
 # Display Audit Eye Banner
-Write-Host @"
-
-------> Made by RitzySix | RiddySix | -> PrefetchAnalysis
-"@ -ForegroundColor Magenta
+Write-Host ""
+Write-Host "██████╗ ██╗██████╗ ██████╗ ██╗   ██╗    ██████╗ ██████╗ ███████╗███████╗███████╗████████╗ ██████╗██╗  ██╗" -ForegroundColor Magenta
+Write-Host "██╔══██╗██║██╔══██╗██╔══██╗╚██╗ ██╔╝    ██╔══██╗██╔══██╗██╔════╝██╔════╝██╔════╝╚══██╔══╝██╔════╝██║  ██║" -ForegroundColor Magenta
+Write-Host "██████╔╝██║██║  ██║██║  ██║ ╚████╔╝     ██████╔╝██████╔╝█████╗  █████╗  █████╗     ██║   ██║     ███████║" -ForegroundColor Magenta
+Write-Host "██╔══██╗██║██║  ██║██║  ██║  ╚██╔╝      ██╔═══╝ ██╔══██╗██╔══╝  ██╔══╝  ██╔══╝     ██║   ██║     ██╔══██║" -ForegroundColor Magenta
+Write-Host "██║  ██║██║██████╔╝██████╔╝   ██║       ██║     ██║  ██║███████╗██║     ███████╗   ██║   ╚██████╗██║  ██║" -ForegroundColor Magenta
+Write-Host "╚═╝  ╚═╝╚═╝╚═════╝ ╚═════╝    ╚═╝       ╚═╝     ╚═╝  ╚═╝╚══════╝╚═╝     ╚══════╝   ╚═╝    ╚═════╝╚═╝  ╚═╝" -ForegroundColor Magenta
 Write-Host ""
 
 # Function to check for admin privileges
@@ -26,6 +32,57 @@ if (!(Test-Admin)) {
 }
 
 Start-Sleep -s 3
+
+# Check prefetch folder status
+Write-Host "Checking prefetch folder status..." -ForegroundColor Cyan
+
+# Check if prefetch directory exists
+if (!(Test-Path -Path $directory -PathType Container)) {
+    Write-Host "PREFETCH FOLDER IS DELETED - Directory does not exist: $directory" -ForegroundColor Red
+    Write-Host "This is a critical security indicator!" -ForegroundColor Red
+    Start-Sleep 5
+    Exit
+}
+
+# Get directory info
+$dirInfo = Get-Item -Path $directory -Force -ErrorAction SilentlyContinue
+
+if ($dirInfo) {
+    # Check if directory is hidden
+    if ($dirInfo.Attributes -band [System.IO.FileAttributes]::Hidden) {
+        Write-Host "WARNING: Prefetch folder is HIDDEN" -ForegroundColor Yellow
+        Write-Host "Hidden directory detected: $directory" -ForegroundColor Yellow
+    }
+
+    # Check directory permissions (for read-only like behavior)
+    try {
+        $acl = Get-Acl -Path $directory
+        $accessRules = $acl.Access
+
+        # Check if current user has write access
+        $currentUser = [System.Security.Principal.WindowsIdentity]::GetCurrent().Name
+        $writeAccess = $false
+
+        foreach ($rule in $accessRules) {
+            if (($rule.IdentityReference.Value -eq $currentUser -or $rule.IdentityReference.Value -eq "BUILTIN\Administrators") -and $rule.FileSystemRights -band [System.Security.AccessControl.FileSystemRights]::Write) {
+                $writeAccess = $true
+                break
+            }
+        }
+
+        if (!$writeAccess) {
+            Write-Host "WARNING: Prefetch folder may be READ-ONLY (no write access)" -ForegroundColor Yellow
+            Write-Host "Current user lacks write permissions for: $directory" -ForegroundColor Yellow
+        }
+    }
+    catch {
+        Write-Host "Could not check directory permissions: $($_.Exception.Message)" -ForegroundColor Yellow
+    }
+} else {
+    Write-Host "Could not access prefetch directory information" -ForegroundColor Red
+}
+
+Write-Host ""
 
 try {
     $prefetchValue = Get-ItemPropertyValue -Path "HKLM:\SYSTEM\CurrentControlSet\Control\Session Manager\Memory Management\PrefetchParameters" -Name EnablePrefetcher -ErrorAction Stop
@@ -296,3 +353,4 @@ if ($suspiciousFiles.Count -gt 0) {
 }
 
 Write-Host "Analysis completed. Total files processed: $totalFiles" -ForegroundColor Cyan
+
