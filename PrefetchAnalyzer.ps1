@@ -1,22 +1,8 @@
-#Requires -Version 5.1
 # Audit Eye Prefetch Analyzer
 # Advanced prefetch file analysis with multi-threading and executable name extraction
-#
-# NOTE: For proper display of the ASCII art banner when downloading via:
-#   iex (iwr "https://raw.githubusercontent.com/RitzySixx/Prefetch-Analysis/refs/heads/main/PrefetchAnalyzer.ps1")
-# Ensure the file is saved/encoded as UTF-8 with BOM in your repository
 
 # Ensure proper encoding for Unicode characters in ASCII art banner
 [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
-[Console]::InputEncoding = [System.Text.Encoding]::UTF8
-
-# Set culture to ensure consistent behavior
-[System.Threading.Thread]::CurrentThread.CurrentCulture = [System.Globalization.CultureInfo]::InvariantCulture
-
-# Force UTF-8 encoding for process-wide consistency
-try {
-    [System.Console]::WriteLine("")  # Initialize console
-} catch {}
 
 $directory = "C:\Windows\Prefetch"
 
