@@ -8,16 +8,6 @@ $directory = "C:\Windows\Prefetch"
 
 Clear-Host
 
-# Display Audit Eye Banner
-Write-Host ""
-Write-Host "██████╗ ██╗██████╗ ██████╗ ██╗   ██╗    ██████╗ ██████╗ ███████╗███████╗███████╗████████╗ ██████╗██╗  ██╗" -ForegroundColor Magenta
-Write-Host "██╔══██╗██║██╔══██╗██╔══██╗╚██╗ ██╔╝    ██╔══██╗██╔══██╗██╔════╝██╔════╝██╔════╝╚══██╔══╝██╔════╝██║  ██║" -ForegroundColor Magenta
-Write-Host "██████╔╝██║██║  ██║██║  ██║ ╚████╔╝     ██████╔╝██████╔╝█████╗  █████╗  █████╗     ██║   ██║     ███████║" -ForegroundColor Magenta
-Write-Host "██╔══██╗██║██║  ██║██║  ██║  ╚██╔╝      ██╔═══╝ ██╔══██╗██╔══╝  ██╔══╝  ██╔══╝     ██║   ██║     ██╔══██║" -ForegroundColor Magenta
-Write-Host "██║  ██║██║██████╔╝██████╔╝   ██║       ██║     ██║  ██║███████╗██║     ███████╗   ██║   ╚██████╗██║  ██║" -ForegroundColor Magenta
-Write-Host "╚═╝  ╚═╝╚═╝╚═════╝ ╚═════╝    ╚═╝       ╚═╝     ╚═╝  ╚═╝╚══════╝╚═╝     ╚══════╝   ╚═╝    ╚═════╝╚═╝  ╚═╝" -ForegroundColor Magenta
-Write-Host ""
-
 # Function to check for admin privileges
 function Test-Admin {
     $currentUser = New-Object Security.Principal.WindowsPrincipal $([Security.Principal.WindowsIdentity]::GetCurrent())
@@ -353,4 +343,5 @@ if ($suspiciousFiles.Count -gt 0) {
 }
 
 Write-Host "Analysis completed. Total files processed: $totalFiles" -ForegroundColor Cyan
+
 
